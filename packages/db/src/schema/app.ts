@@ -1,11 +1,11 @@
 import { relations } from "drizzle-orm";
 import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { user } from "./auth";
 import {
   createInsertSchema,
   createSelectSchema,
   createUpdateSchema,
-} from "drizzle-zod";
-import { user } from "./auth";
+} from "./utils";
 
 // Projects - Just a container with a name
 export const project = pgTable(

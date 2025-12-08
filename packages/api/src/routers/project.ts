@@ -51,8 +51,8 @@ export const projectRouter = {
       const [created] = await db
         .insert(project)
         .values({
-          ...input,
           userId: context.session.user.id,
+          ...input,
         })
         .returning();
 
