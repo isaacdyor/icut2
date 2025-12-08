@@ -1,18 +1,19 @@
 import { relations } from "drizzle-orm";
+import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import {
-  index,
-  integer,
-  pgTable,
-  text,
-  timestamp,
-} from "drizzle-orm/pg-core";
+  createInsertSchema,
+  createSelectSchema,
+  createUpdateSchema,
+} from "drizzle-zod";
 import { user } from "./auth";
 
 // Projects - Just a container with a name
 export const project = pgTable(
   "project",
   {
-    id: text("id").primaryKey(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     name: text("name").notNull(),
     userId: text("user_id")
       .notNull()
@@ -22,8 +23,12 @@ export const project = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("project_userId_idx").on(table.userId)],
+  (table) => [index("project_userId_idx").on(table.userId)]
 );
+
+export const projectSelectSchema = createSelectSchema(project);
+export const projectInsertSchema = createInsertSchema(project);
+export const projectUpdateSchema = createUpdateSchema(project);
 
 export const projectRelations = relations(project, ({ one, many }) => ({
   user: one(user, {
@@ -38,7 +43,9 @@ export const projectRelations = relations(project, ({ one, many }) => ({
 export const asset = pgTable(
   "asset",
   {
-    id: text("id").primaryKey(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     projectId: text("project_id")
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
@@ -47,8 +54,12 @@ export const asset = pgTable(
     type: text("type", { enum: ["video", "audio", "image"] }).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [index("asset_projectId_idx").on(table.projectId)],
+  (table) => [index("asset_projectId_idx").on(table.projectId)]
 );
+
+export const assetSelectSchema = createSelectSchema(asset);
+export const assetInsertSchema = createInsertSchema(asset);
+export const assetUpdateSchema = createUpdateSchema(asset);
 
 export const assetRelations = relations(asset, ({ one, many }) => ({
   project: one(project, {
@@ -62,7 +73,9 @@ export const assetRelations = relations(asset, ({ one, many }) => ({
 export const track = pgTable(
   "track",
   {
-    id: text("id").primaryKey(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     projectId: text("project_id")
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
@@ -70,8 +83,12 @@ export const track = pgTable(
     order: integer("order").notNull(), // Vertical stacking
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
-  (table) => [index("track_projectId_idx").on(table.projectId)],
+  (table) => [index("track_projectId_idx").on(table.projectId)]
 );
+
+export const trackSelectSchema = createSelectSchema(track);
+export const trackInsertSchema = createInsertSchema(track);
+export const trackUpdateSchema = createUpdateSchema(track);
 
 export const trackRelations = relations(track, ({ one, many }) => ({
   project: one(project, {
@@ -85,7 +102,9 @@ export const trackRelations = relations(track, ({ one, many }) => ({
 export const clip = pgTable(
   "clip",
   {
-    id: text("id").primaryKey(),
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     trackId: text("track_id")
       .notNull()
       .references(() => track.id, { onDelete: "cascade" }),
@@ -102,8 +121,12 @@ export const clip = pgTable(
   (table) => [
     index("clip_trackId_idx").on(table.trackId),
     index("clip_assetId_idx").on(table.assetId),
-  ],
+  ]
 );
+
+export const clipSelectSchema = createSelectSchema(clip);
+export const clipInsertSchema = createInsertSchema(clip);
+export const clipUpdateSchema = createUpdateSchema(clip);
 
 export const clipRelations = relations(clip, ({ one }) => ({
   track: one(track, {
@@ -115,3 +138,14 @@ export const clipRelations = relations(clip, ({ one }) => ({
     references: [asset.id],
   }),
 }));
+
+export const schema = {
+  project,
+  projectRelations,
+  asset,
+  assetRelations,
+  track,
+  trackRelations,
+  clip,
+  clipRelations,
+};

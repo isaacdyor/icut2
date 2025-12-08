@@ -8,24 +8,6 @@ import { z } from "zod";
 import { protectedProcedure } from "../index";
 
 export const assetRouter = {
-  getAll: protectedProcedure
-    .input(z.object({ projectId: z.string() }))
-    .handler(async ({ input, context }) => {
-      const [proj] = await db
-        .select()
-        .from(project)
-        .where(eq(project.id, input.projectId));
-
-      if (!proj || proj.userId !== context.session.user.id) {
-        throw new Error("Project not found");
-      }
-
-      return db
-        .select()
-        .from(asset)
-        .where(eq(asset.projectId, input.projectId));
-    }),
-
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .handler(async ({ input, context }) => {

@@ -15,7 +15,12 @@ export const assetsBucket = await R2Bucket("assets", {
       allowed: {
         origins: ["*"],
         methods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
-        headers: ["content-type"],
+        headers: [
+          "content-type",
+          "content-length",
+          "x-amz-checksum-crc32",
+          "x-amz-sdk-checksum-algorithm",
+        ],
       },
       maxAgeSeconds: 3600,
     },

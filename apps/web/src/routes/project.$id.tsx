@@ -1,6 +1,10 @@
+import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { AssetDropzone } from "@/components/asset-dropzone";
+import { AssetThumbnail } from "@/components/asset-thumbnail";
 import { authClient } from "@/lib/auth-client";
+import { getAssetCollection } from "@/lib/collections/asset";
 import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/project/$id")({
@@ -22,6 +26,8 @@ function RouteComponent() {
   const project = useQuery(
     orpc.project.getById.queryOptions({ input: { id } })
   );
+  const assetCollection = getAssetCollection(id);
+  const assets = useLiveQuery((q) => q.from({ assets: assetCollection }));
 
   if (project.isLoading) {
     return (
@@ -42,7 +48,25 @@ function RouteComponent() {
   return (
     <div className="container mx-auto p-8">
       <h1 className="mb-4 font-bold text-3xl">{project.data.name}</h1>
-      <div className="space-y-2">
+
+      <div className="mb-6">
+        <h2 className="mb-3 font-semibold text-lg">Assets</h2>
+        <AssetDropzone assetCollection={assetCollection} projectId={id} />
+
+        {assets.data?.length > 0 ? (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {assets.data.map((asset) => (
+              <AssetThumbnail
+                asset={asset}
+                key={asset.id}
+                onDelete={() => assetCollection.delete(asset.id)}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="space-y-2 text-muted-foreground text-sm">
         <p>
           <span className="font-medium">ID:</span> {project.data.id}
         </p>
