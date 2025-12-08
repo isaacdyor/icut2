@@ -1,0 +1,11 @@
+meta {
+  name: listUserSessions
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/auth/list-sessions
+  body: none
+  auth: inherit
+}

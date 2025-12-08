@@ -3,6 +3,7 @@ import { db } from "@t-example/db";
 import * as schema from "@t-example/db/schema/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { openAPI } from "better-auth/plugins";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -36,4 +37,5 @@ export const auth = betterAuth({
     //   domain: "<your-workers-subdomain>",
     // },
   },
+  plugins: [openAPI()],
 });

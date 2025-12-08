@@ -1,0 +1,18 @@
+meta {
+  name: sendVerificationEmail
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/auth/send-verification-email
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "",
+    "callbackURL": ""
+  }
+}

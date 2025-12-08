@@ -1,0 +1,11 @@
+meta {
+  name: listUserAccounts
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/auth/list-accounts
+  body: none
+  auth: inherit
+}

@@ -1,0 +1,18 @@
+meta {
+  name: Unlink an account
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{baseUrl}}/auth/unlink-account
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "providerId": "",
+    "accountId": ""
+  }
+}

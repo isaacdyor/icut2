@@ -1,0 +1,19 @@
+meta {
+  name: Get a valid access token, doing a refresh if needed
+  type: http
+  seq: 24
+}
+
+post {
+  url: {{baseUrl}}/auth/get-access-token
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "providerId": "",
+    "accountId": "",
+    "userId": ""
+  }
+}

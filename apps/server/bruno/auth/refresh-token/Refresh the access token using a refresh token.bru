@@ -1,0 +1,19 @@
+meta {
+  name: Refresh the access token using a refresh token
+  type: http
+  seq: 23
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh-token
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "providerId": "",
+    "accountId": "",
+    "userId": ""
+  }
+}

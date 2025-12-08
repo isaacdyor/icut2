@@ -1,11 +1,11 @@
 meta {
-  name: privateData
+  name: getSession
   type: http
   seq: 2
 }
 
-post {
-  url: {{baseUrl}}/privateData
+get {
+  url: {{baseUrl}}/auth/get-session
   body: none
   auth: inherit
 }

@@ -11,6 +11,7 @@ import { auth } from "@t-example/auth";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { isErrorResult, type MergeInput, merge } from "openapi-merge";
 
 const app = new Hono();
 
@@ -42,7 +43,24 @@ app.get("/openapi.json", async (c) => {
     },
     servers: [{ url: serverUrl }],
   });
-  return c.json(spec);
+
+  const authSpec = await auth.api.generateOpenAPISchema();
+
+  const mergeInputs: MergeInput = [
+    { oas: spec as MergeInput[0]["oas"], pathModification: { prepend: "" } },
+    {
+      oas: authSpec as MergeInput[0]["oas"],
+      pathModification: { prepend: "/auth" },
+    },
+  ];
+
+  const result = merge(mergeInputs);
+
+  if (isErrorResult(result)) {
+    return c.json({ error: result.message }, 500);
+  }
+
+  return c.json(result.output);
 });
 
 export const apiHandler = new OpenAPIHandler(appRouter, {

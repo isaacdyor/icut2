@@ -7,18 +7,48 @@ const OUTPUT_DIR = join(import.meta.dirname, "../apps/server/bruno");
 const PARAM_PATTERN = /:(\w+)/g;
 const START_WITH_SLASH_PATTERN = /^\//;
 
+function getRequestFolder(url: string): string {
+  return url
+    .replace("{{baseUrl}}", "")
+    .replace(START_WITH_SLASH_PATTERN, "")
+    .replace(PARAM_PATTERN, "{$1}");
+}
+
+function buildBruContent(item: BrunoItem): string {
+  const { name, seq, request } = item;
+  if (!request) {
+    return "";
+  }
+
+  let content = `meta {\n  name: ${name}\n  type: http\n  seq: ${seq}\n}\n\n`;
+  content += `${request.method.toLowerCase()} {\n  url: ${request.url}\n  body: ${request.body.mode}\n  auth: inherit\n}\n`;
+
+  if (request.body.mode === "json" && request.body.json) {
+    const json = request.body.json
+      .split("\n")
+      .map((line) => `  ${line}`)
+      .join("\n");
+    content += `\nbody:json {\n${json}\n}\n`;
+  }
+
+  return content;
+}
+
+type BrunoItem = {
+  name: string;
+  type: string;
+  seq: number;
+  items?: BrunoItem[];
+  request?: {
+    url: string;
+    method: string;
+    body: { mode: string; json: string | null };
+  };
+};
+
 type BrunoCollection = {
   name: string;
-  items: Array<{
-    name: string;
-    type: string;
-    seq: number;
-    request: {
-      url: string;
-      method: string;
-      body: { mode: string; json: string | null };
-    };
-  }>;
+  items: BrunoItem[];
   environments: Array<{
     name: string;
     variables: Array<{ name: string; value: string; enabled: boolean }>;
@@ -50,32 +80,27 @@ async function main() {
   );
 
   // requests
-  for (const item of collection.items) {
-    if (item.type !== "http-request") {
-      continue;
+  async function processItems(items: BrunoItem[]) {
+    for (const item of items) {
+      if (item.type === "folder" && item.items) {
+        await processItems(item.items);
+        continue;
+      }
+
+      if (item.type !== "http-request" || !item.request) {
+        continue;
+      }
+
+      const folder = getRequestFolder(item.request.url);
+      const dir = folder ? join(OUTPUT_DIR, folder) : OUTPUT_DIR;
+      await mkdir(dir, { recursive: true });
+
+      const content = buildBruContent(item);
+      await writeFile(join(dir, `${item.name}.bru`), content);
     }
-
-    const folder = item.request.url
-      .replace("{{baseUrl}}", "")
-      .replace(START_WITH_SLASH_PATTERN, "")
-      .replace(PARAM_PATTERN, "{$1}");
-
-    const dir = folder ? join(OUTPUT_DIR, folder) : OUTPUT_DIR;
-    await mkdir(dir, { recursive: true });
-
-    let content = `meta {\n  name: ${item.name}\n  type: http\n  seq: ${item.seq}\n}\n\n`;
-    content += `${item.request.method.toLowerCase()} {\n  url: ${item.request.url}\n  body: ${item.request.body.mode}\n  auth: inherit\n}\n`;
-
-    if (item.request.body.mode === "json" && item.request.body.json) {
-      const json = item.request.body.json
-        .split("\n")
-        .map((line) => `  ${line}`)
-        .join("\n");
-      content += `\nbody:json {\n${json}\n}\n`;
-    }
-
-    await writeFile(join(dir, `${item.name}.bru`), content);
   }
+
+  await processItems(collection.items);
 
   // environments
   for (const env of collection.environments ?? []) {

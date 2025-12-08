@@ -1,11 +1,11 @@
 meta {
-  name: healthCheck
+  name: health
   type: http
   seq: 1
 }
 
-post {
-  url: {{baseUrl}}/healthCheck
+get {
+  url: {{baseUrl}}/health
   body: none
   auth: inherit
 }

@@ -1,0 +1,20 @@
+meta {
+  name: signInEmail
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/auth/sign-in/email
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "",
+    "password": "",
+    "callbackURL": "",
+    "rememberMe": ""
+  }
+}

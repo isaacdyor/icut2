@@ -1,0 +1,11 @@
+meta {
+  name: Get the account info provided by the provider
+  type: http
+  seq: 25
+}
+
+get {
+  url: {{baseUrl}}/auth/account-info
+  body: none
+  auth: inherit
+}

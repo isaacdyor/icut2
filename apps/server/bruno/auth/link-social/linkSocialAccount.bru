@@ -1,0 +1,30 @@
+meta {
+  name: linkSocialAccount
+  type: http
+  seq: 19
+}
+
+post {
+  url: {{baseUrl}}/auth/link-social
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "callbackURL": "",
+    "provider": "",
+    "idToken": {
+      "token": "",
+      "nonce": "",
+      "accessToken": "",
+      "refreshToken": "",
+      "scopes": []
+    },
+    "requestSignUp": false,
+    "scopes": [],
+    "errorCallbackURL": "",
+    "disableRedirect": false,
+    "additionalData": ""
+  }
+}

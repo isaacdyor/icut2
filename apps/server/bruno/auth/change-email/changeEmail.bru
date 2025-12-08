@@ -1,0 +1,18 @@
+meta {
+  name: changeEmail
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/auth/change-email
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "newEmail": "",
+    "callbackURL": ""
+  }
+}

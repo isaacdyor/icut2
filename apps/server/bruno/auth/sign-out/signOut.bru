@@ -1,11 +1,11 @@
 meta {
-  name: asset.delete
+  name: signOut
   type: http
-  seq: 9
+  seq: 3
 }
 
-delete {
-  url: {{baseUrl}}/assets/:id
+post {
+  url: {{baseUrl}}/auth/sign-out
   body: json
   auth: inherit
 }
