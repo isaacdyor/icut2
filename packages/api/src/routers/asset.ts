@@ -63,7 +63,7 @@ export const assetRouter = {
     }),
 
   update: protectedProcedure
-    .route({ method: "PUT", path: "/assets/{id}" })
+    .route({ method: "PATCH", path: "/assets/{id}" })
     .input(assetUpdateSchema.extend({ id: z.string() }))
     .output(assetSelectSchema)
     .handler(async ({ input, context }) => {
@@ -122,6 +122,7 @@ export const assetRouter = {
     }),
 
   getUploadUrl: protectedProcedure
+    .route({ method: "POST", path: "/assets/upload-url" })
     .input(
       z.object({
         key: z.string().min(1),

@@ -1,0 +1,15 @@
+meta {
+  name: asset.delete
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/assets/:id
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {}
+}

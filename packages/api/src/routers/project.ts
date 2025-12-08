@@ -64,7 +64,7 @@ export const projectRouter = {
     }),
 
   update: protectedProcedure
-    .route({ method: "PUT", path: "/projects/{id}" })
+    .route({ method: "PATCH", path: "/projects/{id}" })
     .input(projectUpdateSchema.extend({ id: z.string() }))
     .output(projectSelectSchema)
     .handler(async ({ input, context }) => {

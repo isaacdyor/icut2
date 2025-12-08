@@ -1,0 +1,48 @@
+meta {
+  name: project.getAll
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/projects
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/projects
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        [
+          {
+            "id": "",
+            "name": "",
+            "userId": "",
+            "createdAt": "",
+            "updatedAt": ""
+          }
+        ]
+      '''
+    }
+  }
+}

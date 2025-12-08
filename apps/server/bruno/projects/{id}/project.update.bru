@@ -1,0 +1,17 @@
+meta {
+  name: project.update
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/projects/:id
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": ""
+  }
+}

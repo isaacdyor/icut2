@@ -1,0 +1,18 @@
+meta {
+  name: asset.getUploadUrl
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/assets/upload-url
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "key": "",
+    "contentType": ""
+  }
+}

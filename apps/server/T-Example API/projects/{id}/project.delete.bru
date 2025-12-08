@@ -1,0 +1,61 @@
+meta {
+  name: project.delete
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/projects/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+body:json {
+  {}
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/projects/:id
+    method: DELETE
+    mode: json
+    params:path: {
+      id: 
+    }
+  
+    body:json: {
+      {}
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": "",
+          "name": "",
+          "userId": "",
+          "createdAt": "",
+          "updatedAt": ""
+        }
+      '''
+    }
+  }
+}

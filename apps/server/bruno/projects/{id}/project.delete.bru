@@ -1,0 +1,15 @@
+meta {
+  name: project.delete
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/projects/:id
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {}
+}

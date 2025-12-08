@@ -1,0 +1,54 @@
+meta {
+  name: asset.getById
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/assets/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/assets/:id
+    method: GET
+    mode: none
+    params:path: {
+      id: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": "",
+          "projectId": "",
+          "name": "",
+          "url": "",
+          "type": "",
+          "createdAt": ""
+        }
+      '''
+    }
+  }
+}

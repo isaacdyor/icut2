@@ -32,11 +32,13 @@
     "db:generate": "turbo -F @t-example/db db:generate",
     "db:migrate": "turbo -F @t-example/db db:migrate",
     "deploy": "alchemy deploy",
-    "destroy": "alchemy destroy"
+    "destroy": "alchemy destroy",
+    "generate:bruno": "bun scripts/generate-bruno.ts"
   },
   "dependencies": {
     "@tanstack/react-db": "^0.1.55",
     "@tanstack/react-form": "^1.27.1",
+    "@usebruno/converters": "^0.15.0",
     "dotenv": "^17.2.2",
     "drizzle-zod": "^0.8.3",
     "zod": "^4.1.13"

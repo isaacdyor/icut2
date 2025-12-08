@@ -7,7 +7,13 @@
       "Bash(npx tsc:*)",
       "Bash(bunx tsc:*)",
       "Bash(bun run check-types:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(xargs:*)",
+      "Bash(mkdir:*)",
+      "Bash(bun -e:*)",
+      "Bash(bun generate:bruno:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

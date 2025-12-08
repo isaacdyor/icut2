@@ -1,0 +1,20 @@
+meta {
+  name: asset.create
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/assets
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "projectId": "",
+    "name": "",
+    "url": "",
+    "type": ""
+  }
+}

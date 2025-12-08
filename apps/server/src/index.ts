@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { OpenAPIGenerator } from "@orpc/openapi";
 import { OpenAPIHandler } from "@orpc/openapi/fetch";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
@@ -25,6 +26,21 @@ app.use(
 );
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+
+const openAPIGenerator = new OpenAPIGenerator({
+  schemaConverters: [new ZodToJsonSchemaConverter()],
+});
+
+app.get("/openapi.json", async (c) => {
+  const spec = await openAPIGenerator.generate(appRouter, {
+    info: {
+      title: "T-Example API",
+      version: "1.0.0",
+    },
+    servers: [{ url: env.CORS_ORIGIN || "http://localhost:8787" }],
+  });
+  return c.json(spec);
+});
 
 export const apiHandler = new OpenAPIHandler(appRouter, {
   plugins: [

@@ -1,0 +1,11 @@
+meta {
+  name: project.getById
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/projects/:id
+  body: none
+  auth: inherit
+}

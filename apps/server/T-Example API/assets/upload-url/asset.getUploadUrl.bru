@@ -1,0 +1,53 @@
+meta {
+  name: asset.getUploadUrl
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/assets/upload-url
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "key": "",
+    "contentType": ""
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/assets/upload-url
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "key": "",
+        "contentType": ""
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+  
+      '''
+    }
+  }
+}
