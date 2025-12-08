@@ -19,7 +19,9 @@ export const Route = createFileRoute("/project/$id")({
 
 function RouteComponent() {
   const { id } = Route.useParams();
-  const project = useQuery(orpc.project.getById.queryOptions({ id }));
+  const project = useQuery(
+    orpc.project.getById.queryOptions({ input: { id } })
+  );
 
   if (project.isLoading) {
     return (
@@ -39,7 +41,7 @@ function RouteComponent() {
 
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-4">{project.data.name}</h1>
+      <h1 className="mb-4 font-bold text-3xl">{project.data.name}</h1>
       <div className="space-y-2">
         <p>
           <span className="font-medium">ID:</span> {project.data.id}

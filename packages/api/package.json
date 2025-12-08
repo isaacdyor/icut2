@@ -17,15 +17,17 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@orpc/server": "catalog:",
+    "@aws-sdk/client-s3": "^3.946.0",
+    "@aws-sdk/s3-request-presigner": "^3.946.0",
     "@orpc/client": "catalog:",
     "@orpc/openapi": "catalog:",
+    "@orpc/server": "catalog:",
     "@orpc/zod": "catalog:",
-    "hono": "catalog:",
-    "drizzle-orm": "catalog:",
-    "dotenv": "catalog:",
-    "zod": "^4.1.11",
     "@t-example/auth": "workspace:*",
-    "@t-example/db": "workspace:*"
+    "@t-example/db": "workspace:*",
+    "dotenv": "catalog:",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:",
+    "zod": "^4.1.11"
   }
 }
