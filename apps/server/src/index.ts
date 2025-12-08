@@ -32,12 +32,15 @@ const openAPIGenerator = new OpenAPIGenerator({
 });
 
 app.get("/openapi.json", async (c) => {
+  const url = new URL(c.req.url);
+  const serverUrl = `${url.protocol}//${url.host}/api`;
+
   const spec = await openAPIGenerator.generate(appRouter, {
     info: {
-      title: "T-Example API",
+      title: "icut API",
       version: "1.0.0",
     },
-    servers: [{ url: env.CORS_ORIGIN || "http://localhost:8787" }],
+    servers: [{ url: serverUrl }],
   });
   return c.json(spec);
 });
