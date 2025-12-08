@@ -65,17 +65,16 @@ export const projectRouter = {
 
   update: protectedProcedure
     .route({ method: "PUT", path: "/projects/{id}" })
-    .input(z.object({ ...projectUpdateSchema.shape, id: z.string() }))
+    .input(projectUpdateSchema.extend({ id: z.string() }))
     .output(projectSelectSchema)
     .handler(async ({ input, context }) => {
+      const { id, ...updates } = input;
+
       const [updatedProj] = await db
         .update(project)
-        .set(input)
+        .set(updates)
         .where(
-          and(
-            eq(project.id, input.id),
-            eq(project.userId, context.session.user.id)
-          )
+          and(eq(project.id, id), eq(project.userId, context.session.user.id))
         )
         .returning();
 
@@ -89,8 +88,9 @@ export const projectRouter = {
   delete: protectedProcedure
     .route({ method: "DELETE", path: "/projects/{id}" })
     .input(z.object({ id: z.string() }))
+    .output(projectSelectSchema)
     .handler(async ({ input, context }) => {
-      const result = await db
+      const [deleted] = await db
         .delete(project)
         .where(
           and(
@@ -100,8 +100,10 @@ export const projectRouter = {
         )
         .returning();
 
-      if (result.length === 0) {
+      if (!deleted) {
         throw new ORPCError("NOT_FOUND");
       }
+
+      return deleted;
     }),
 };

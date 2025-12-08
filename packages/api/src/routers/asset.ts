@@ -1,121 +1,124 @@
 import { env } from "cloudflare:workers";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { ORPCError } from "@orpc/server";
 import { db } from "@t-example/db";
-import { asset, project } from "@t-example/db/schema/app";
-import { eq } from "drizzle-orm";
+import {
+  asset,
+  assetInsertSchema,
+  assetSelectSchema,
+  assetUpdateSchema,
+  project,
+} from "@t-example/db/schema/app";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../index";
 
 export const assetRouter = {
   getById: protectedProcedure
+    .route({ method: "GET", path: "/assets/{id}" })
     .input(z.object({ id: z.string() }))
+    .output(assetSelectSchema)
     .handler(async ({ input, context }) => {
-      const [assetRecord] = await db
-        .select()
+      const [result] = await db
+        .select({ asset })
         .from(asset)
-        .where(eq(asset.id, input.id));
+        .innerJoin(project, eq(asset.projectId, project.id))
+        .where(
+          and(
+            eq(asset.id, input.id),
+            eq(project.userId, context.session.user.id)
+          )
+        );
 
-      if (!assetRecord) {
-        throw new Error("Asset not found");
+      if (!result) {
+        throw new ORPCError("NOT_FOUND");
       }
 
-      const [proj] = await db
-        .select()
-        .from(project)
-        .where(eq(project.id, assetRecord.projectId));
-
-      if (!proj || proj.userId !== context.session.user.id) {
-        throw new Error("Asset not found");
-      }
-
-      return assetRecord;
+      return result.asset;
     }),
 
   create: protectedProcedure
-    .input(
-      z.object({
-        projectId: z.string(),
-        name: z.string().min(1),
-        url: z.url(),
-        type: z.enum(["video", "audio", "image"]),
-      })
-    )
+    .route({ method: "POST", path: "/assets" })
+    .input(assetInsertSchema)
+    .output(assetSelectSchema)
     .handler(async ({ input, context }) => {
-      const [proj] = await db
-        .select()
-        .from(project)
-        .where(eq(project.id, input.projectId));
+      const [created] = await db
+        .insert(asset)
+        .values({
+          ...input,
+          projectId: sql<string>`(
+            SELECT ${project.id} FROM ${project}
+            WHERE ${project.id} = ${input.projectId}
+            AND ${project.userId} = ${context.session.user.id}
+          )`,
+        })
+        .returning();
 
-      if (!proj || proj.userId !== context.session.user.id) {
-        throw new Error("Project not found");
+      if (!created) {
+        throw new ORPCError("NOT_FOUND", { message: "Project not found" });
       }
 
-      const id = crypto.randomUUID();
-      await db.insert(asset).values({
-        id,
-        projectId: input.projectId,
-        name: input.name,
-        url: input.url,
-        type: input.type,
-      });
-      return { id };
+      return created;
     }),
 
   update: protectedProcedure
-    .input(
-      z.object({
-        id: z.string(),
-        name: z.string().min(1).optional(),
-        url: z.string().url().optional(),
-        type: z.enum(["video", "audio", "image"]).optional(),
-      })
-    )
+    .route({ method: "PUT", path: "/assets/{id}" })
+    .input(assetUpdateSchema.extend({ id: z.string() }))
+    .output(assetSelectSchema)
     .handler(async ({ input, context }) => {
-      const [assetRecord] = await db
-        .select()
-        .from(asset)
-        .where(eq(asset.id, input.id));
+      const { id, ...updates } = input;
 
-      if (!assetRecord) {
-        throw new Error("Asset not found");
+      const [updated] = await db
+        .update(asset)
+        .set(updates)
+        .where(
+          and(
+            eq(asset.id, id),
+            inArray(
+              asset.projectId,
+              db
+                .select({ id: project.id })
+                .from(project)
+                .where(eq(project.userId, context.session.user.id))
+            )
+          )
+        )
+        .returning();
+
+      if (!updated) {
+        throw new ORPCError("NOT_FOUND");
       }
 
-      const [proj] = await db
-        .select()
-        .from(project)
-        .where(eq(project.id, assetRecord.projectId));
-
-      if (!proj || proj.userId !== context.session.user.id) {
-        throw new Error("Asset not found");
-      }
-
-      const { ...updates } = input;
-      await db.update(asset).set(updates).where(eq(asset.id, input.id));
+      return updated;
     }),
 
   delete: protectedProcedure
+    .route({ method: "DELETE", path: "/assets/{id}" })
     .input(z.object({ id: z.string() }))
+    .output(assetSelectSchema)
     .handler(async ({ input, context }) => {
-      const [assetRecord] = await db
-        .select()
-        .from(asset)
-        .where(eq(asset.id, input.id));
+      const [deleted] = await db
+        .delete(asset)
+        .where(
+          and(
+            eq(asset.id, input.id),
+            inArray(
+              asset.projectId,
+              db
+                .select({ id: project.id })
+                .from(project)
+                .where(eq(project.userId, context.session.user.id))
+            )
+          )
+        )
+        .returning();
 
-      if (!assetRecord) {
-        throw new Error("Asset not found");
+      if (!deleted) {
+        throw new ORPCError("NOT_FOUND");
       }
 
-      const [proj] = await db
-        .select()
-        .from(project)
-        .where(eq(project.id, assetRecord.projectId));
-
-      if (!proj || proj.userId !== context.session.user.id) {
-        throw new Error("Asset not found");
-      }
-
-      await db.delete(asset).where(eq(asset.id, input.id));
+      return deleted;
     }),
 
   getUploadUrl: protectedProcedure
