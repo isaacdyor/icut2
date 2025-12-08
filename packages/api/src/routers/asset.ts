@@ -124,21 +124,11 @@ export const assetRouter = {
   getUploadUrl: protectedProcedure
     .input(
       z.object({
-        projectId: z.string(),
-        filename: z.string().min(1),
+        key: z.string().min(1),
         contentType: z.string().min(1),
       })
     )
-    .handler(async ({ input, context }) => {
-      const [proj] = await db
-        .select()
-        .from(project)
-        .where(eq(project.id, input.projectId));
-
-      if (!proj || proj.userId !== context.session.user.id) {
-        throw new Error("Project not found");
-      }
-
+    .handler(async ({ input }) => {
       const s3Client = new S3Client({
         region: "auto",
         endpoint: `https://${env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -148,11 +138,9 @@ export const assetRouter = {
         },
       });
 
-      const key = `${input.projectId}/${crypto.randomUUID()}-${input.filename}`;
-
       const command = new PutObjectCommand({
         Bucket: "assets",
-        Key: key,
+        Key: input.key,
         ContentType: input.contentType,
       });
 
@@ -160,8 +148,8 @@ export const assetRouter = {
         expiresIn: 3600,
       });
 
-      const publicUrl = `https://${env.R2_PUBLIC_URL}/${key}`;
+      const publicUrl = `https://${env.R2_PUBLIC_URL}/${input.key}`;
 
-      return { uploadUrl, key, publicUrl };
+      return { uploadUrl, key: input.key, publicUrl };
     }),
 };
