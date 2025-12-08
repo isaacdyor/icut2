@@ -1,6 +1,6 @@
+import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
@@ -21,7 +21,6 @@ export const Route = createFileRoute("/dashboard")({
 
 function RouteComponent() {
   const { session } = Route.useRouteContext();
-  const [newProjectName, setNewProjectName] = useState("");
 
   const projects = useQuery(orpc.project.getAll.queryOptions());
 
@@ -29,16 +28,21 @@ function RouteComponent() {
     orpc.project.create.mutationOptions({
       onSuccess: () => {
         projects.refetch();
-        setNewProjectName("");
+        form.reset();
       },
     }),
   );
 
-  const handleCreate = () => {
-    if (newProjectName.trim()) {
-      createProject.mutate({ name: newProjectName });
-    }
-  };
+  const form = useForm({
+    defaultValues: {
+      name: "",
+    },
+    onSubmit: ({ value }) => {
+      if (value.name.trim()) {
+        createProject.mutate({ name: value.name });
+      }
+    },
+  });
 
   return (
     <div className="container mx-auto p-8">
@@ -51,23 +55,49 @@ function RouteComponent() {
 
       <div className="mb-6">
         <h2 className="mb-4 font-semibold text-xl">Projects</h2>
-        <div className="mb-6 flex gap-2">
-          <input
-            className="flex-1 rounded-md border px-3 py-2"
-            onChange={(e) => setNewProjectName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleCreate();
-              }
+        <form
+          className="mb-6 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            form.handleSubmit();
+          }}
+        >
+          <form.Field
+            name="name"
+            validators={{
+              onChange: ({ value }) => {
+                if (!value) {
+                  return "A project name is required";
+                }
+                if (value.length < 1) {
+                  return "Project name must be at least 1 character";
+                }
+              },
             }}
-            placeholder="New project name"
-            type="text"
-            value={newProjectName}
-          />
-          <Button disabled={!newProjectName.trim()} onClick={handleCreate}>
-            Create Project
-          </Button>
-        </div>
+          >
+            {(field) => (
+              <>
+                <input
+                  className="flex-1 rounded-md border px-3 py-2"
+                  id={field.name}
+                  name={field.name}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="New project name"
+                  type="text"
+                  value={field.state.value}
+                />
+                <Button
+                  disabled={createProject.isPending || !field.state.value.trim()}
+                  type="submit"
+                >
+                  Create Project
+                </Button>
+              </>
+            )}
+          </form.Field>
+        </form>
 
         {projects.isLoading ? (
           <p>Loading projects...</p>

@@ -35,6 +35,7 @@
     "destroy": "alchemy destroy"
   },
   "dependencies": {
+    "@tanstack/react-form": "^1.27.1",
     "dotenv": "^17.2.2",
     "zod": "^4.1.11"
   },
