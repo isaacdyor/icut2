@@ -1,9 +1,9 @@
+import { useLiveQuery } from "@tanstack/react-db";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { orpc } from "@/utils/orpc";
+import { db } from "@/lib/db";
 
 export const Route = createFileRoute("/dashboard")({
   component: RouteComponent,
@@ -22,16 +22,7 @@ export const Route = createFileRoute("/dashboard")({
 function RouteComponent() {
   const { session } = Route.useRouteContext();
 
-  const projects = useQuery(orpc.project.getAll.queryOptions());
-
-  const createProject = useMutation(
-    orpc.project.create.mutationOptions({
-      onSuccess: () => {
-        projects.refetch();
-        form.reset();
-      },
-    }),
-  );
+  const projects = useLiveQuery((q) => q.from({ projects: db.projects }));
 
   const form = useForm({
     defaultValues: {
@@ -39,7 +30,14 @@ function RouteComponent() {
     },
     onSubmit: ({ value }) => {
       if (value.name.trim()) {
-        createProject.mutate({ name: value.name });
+        db.projects.insert({
+          id: crypto.randomUUID(),
+          name: value.name,
+          userId: session.data?.user.id ?? "",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        form.reset();
       }
     },
   });
@@ -88,10 +86,7 @@ function RouteComponent() {
                   type="text"
                   value={field.state.value}
                 />
-                <Button
-                  disabled={createProject.isPending || !field.state.value.trim()}
-                  type="submit"
-                >
+                <Button disabled={!field.state.value.trim()} type="submit">
                   Create Project
                 </Button>
               </>
@@ -116,7 +111,7 @@ function RouteComponent() {
               >
                 <h3 className="font-medium">{project.name}</h3>
                 <p className="text-muted-foreground text-sm">
-                  Created {new Date(project.createdAt).toLocaleDateString()}
+                  Created {project.createdAt.toLocaleDateString()}
                 </p>
               </Link>
             ))}

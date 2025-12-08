@@ -35,9 +35,10 @@
     "destroy": "alchemy destroy"
   },
   "dependencies": {
+    "@tanstack/react-db": "^0.1.55",
     "@tanstack/react-form": "^1.27.1",
     "dotenv": "^17.2.2",
-    "zod": "^4.1.11"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bun add:*)"
+      "Bash(bun add:*)",
+      "Bash(bun run tsc:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
