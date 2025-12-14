@@ -10,11 +10,28 @@ post {
   auth: inherit
 }
 
+headers {
+  Origin: http://localhost:3001
+  Cookie: {{authCookie}}
+}
+
 body:json {
   {
-    "email": "",
-    "password": "",
+    "email": "isaac@wordware.ai",
+    "password": "messiman07da",
     "callbackURL": "",
-    "rememberMe": ""
+    "rememberMe": false
+  }
+}
+
+script:post-response {
+  const setCookie = res.getHeader('set-cookie');
+  if (setCookie) {
+    const cookieArray = Array.isArray(setCookie) ? setCookie : [setCookie];
+    const authCookie = cookieArray.find(c => c.startsWith('better-auth.'));
+    if (authCookie) {
+      const cookieValue = authCookie.split(';')[0];
+      bru.setEnvVar("authCookie", cookieValue);
+    }
   }
 }

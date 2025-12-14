@@ -31,6 +31,31 @@ function buildBruContent(item: BrunoItem): string {
     content += `\nbody:json {\n${json}\n}\n`;
   }
 
+  // Add headers for Origin and Cookie to all requests
+  content += `
+headers {
+  Origin: http://localhost:3001
+  Cookie: {{authCookie}}
+}
+`;
+
+  // Add post-response script to sign-in endpoints to save auth cookie
+  if (name === "signInEmail" || name === "signUpWithEmailAndPassword") {
+    content += `
+script:post-response {
+  const setCookie = res.getHeader('set-cookie');
+  if (setCookie) {
+    const cookieArray = Array.isArray(setCookie) ? setCookie : [setCookie];
+    const authCookie = cookieArray.find(c => c.startsWith('better-auth.'));
+    if (authCookie) {
+      const cookieValue = authCookie.split(';')[0];
+      bru.setEnvVar("authCookie", cookieValue);
+    }
+  }
+}
+`;
+  }
+
   return content;
 }
 
@@ -76,7 +101,15 @@ async function main() {
   // collection.bru
   await writeFile(
     join(OUTPUT_DIR, "collection.bru"),
-    `meta {\n  name: ${collection.name}\n}\n\nauth {\n  mode: none\n}\n`
+    `meta {\n  name: ${collection.name}\n}\n\nauth {\n  mode: none\n}\n
+script:pre-request {
+  req.setHeader("Origin", "http://localhost:3001");
+  const authCookie = bru.getEnvVar("authCookie");
+  if (authCookie) {
+    req.setHeader("Cookie", authCookie);
+  }
+}
+`
   );
 
   // requests
@@ -110,7 +143,10 @@ async function main() {
       .filter((v) => v.enabled)
       .map((v) => `  ${v.name}: ${v.value}`)
       .join("\n");
-    await writeFile(join(envDir, `${env.name}.bru`), `vars {\n${vars}\n}\n`);
+    await writeFile(
+      join(envDir, `${env.name}.bru`),
+      `vars {\n${vars}\n}\n\nvars:secret [\n  authCookie\n]\n`
+    );
   }
 
   console.log(`Bruno collection generated at: ${OUTPUT_DIR}`);
