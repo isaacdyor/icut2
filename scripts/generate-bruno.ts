@@ -31,6 +31,13 @@ function buildBruContent(item: BrunoItem): string {
     content += `\nbody:json {\n${json}\n}\n`;
   }
 
+  // Add Origin header for better-auth (browsers send this automatically)
+  content += `
+headers {
+  Origin: http://localhost:3001
+}
+`;
+
   return content;
 }
 
