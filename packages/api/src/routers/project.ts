@@ -1,5 +1,6 @@
 import { ORPCError } from "@orpc/server";
 import { db } from "@t-example/db";
+import { and, eq } from "@t-example/db/drizzle";
 import {
   assetSelectSchema,
   project,
@@ -7,7 +8,6 @@ import {
   projectSelectSchema,
   projectUpdateSchema,
 } from "@t-example/db/schema/app";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../index";
 

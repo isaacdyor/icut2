@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 1,
   "workspaces": {
     "": {
       "name": "t-example",
@@ -103,7 +102,6 @@
         "@t-example/auth": "workspace:*",
         "@t-example/db": "workspace:*",
         "dotenv": "catalog:",
-        "drizzle-orm": "catalog:",
         "hono": "catalog:",
         "zod": "^4.1.11",
       },
