@@ -145,6 +145,23 @@ export function createClipMutations(
         }
       });
     },
+    update: async (
+      clipId: string,
+      updates: { startMs?: number; durationMs?: number }
+    ) => {
+      // Optimistically update the collection (position change only)
+      collection.update(currentProject.id, (draft) => {
+        for (const track of draft.tracks) {
+          const clip = track.clips.find((c) => c.id === clipId);
+          if (clip) {
+            Object.assign(clip, updates);
+            break;
+          }
+        }
+      });
+      // Persist to server
+      await client.clip.update({ id: clipId, ...updates });
+    },
     delete: async (clipId: string) => {
       // Optimistically update the collection
       collection.update(currentProject.id, (draft) => {
