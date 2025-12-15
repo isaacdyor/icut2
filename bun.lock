@@ -143,6 +143,7 @@
       },
       "devDependencies": {
         "@t-example/config": "workspace:*",
+        "@types/pg": "^8.11.6",
         "@types/ws": "^8.18.1",
         "drizzle-kit": "^0.31.2",
       },

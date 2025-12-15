@@ -50,6 +50,33 @@ function RouteComponent() {
       <h1 className="mb-4 font-bold text-3xl">{project.data.name}</h1>
 
       <div className="mb-6">
+        <h2 className="mb-3 font-semibold text-lg">Tracks</h2>
+        {project.data.tracks.length > 0 ? (
+          <div className="space-y-2">
+            {project.data.tracks.map((track) => (
+              <div
+                className="flex items-center gap-3 rounded-md border bg-muted/50 p-3"
+                key={track.id}
+              >
+                <span
+                  className={`rounded px-2 py-1 font-mono text-xs ${
+                    track.type === "video"
+                      ? "bg-blue-500/20 text-blue-500"
+                      : "bg-green-500/20 text-green-500"
+                  }`}
+                >
+                  {track.type}
+                </span>
+                <span className="font-medium">{track.name}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-sm">No tracks</p>
+        )}
+      </div>
+
+      <div className="mb-6">
         <h2 className="mb-3 font-semibold text-lg">Assets</h2>
         <AssetDropzone assetCollection={assetCollection} projectId={id} />
 

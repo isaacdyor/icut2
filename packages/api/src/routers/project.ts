@@ -57,31 +57,33 @@ export const projectRouter = {
     .route({ method: "POST", path: "/projects" })
     .input(projectInsertSchema)
     .output(projectSelectSchema.extend({ tracks: z.array(trackSelectSchema) }))
-    .handler(async ({ input, context }) =>
-      db.transaction(async (tx) => {
-        const [created] = await tx
+    .handler(async ({ input, context }) => {
+      const projectId = crypto.randomUUID();
+      const defaultTracks = [
+        { projectId, name: "V1", type: "video" as const, order: 0 },
+        { projectId, name: "A1", type: "audio" as const, order: 1 },
+        { projectId, name: "A2", type: "audio" as const, order: 2 },
+      ];
+
+      const [projectResults, tracksResults] = await db.batch([
+        db
           .insert(project)
           .values({
+            id: projectId,
             name: input.name,
             userId: context.session.user.id,
           })
-          .returning();
+          .returning(),
+        db.insert(track).values(defaultTracks).returning(),
+      ]);
 
-        if (!created) {
-          throw new ORPCError("INTERNAL_SERVER_ERROR");
-        }
+      const created = projectResults[0];
+      if (!created) {
+        throw new ORPCError("INTERNAL_SERVER_ERROR");
+      }
 
-        const defaultTracks = [
-          { projectId: created.id, name: "V1", type: "video" as const, order: 0 },
-          { projectId: created.id, name: "A1", type: "audio" as const, order: 1 },
-          { projectId: created.id, name: "A2", type: "audio" as const, order: 2 },
-        ];
-
-        const tracks = await tx.insert(track).values(defaultTracks).returning();
-
-        return { ...created, tracks };
-      })
-    ),
+      return { ...created, tracks: tracksResults };
+    }),
 
   update: protectedProcedure
     .route({ method: "PATCH", path: "/projects/{id}" })
