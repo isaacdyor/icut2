@@ -8,14 +8,18 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { createClipMutations } from "@/lib/collections/project";
 import type { Asset, Clip, Track } from "@/lib/types";
 import {
   DEFAULT_CLIP_DURATION_MS,
+  MAX_ZOOM,
+  MIN_ZOOM,
+  msToPx,
   pxToMs,
   snapToGrid,
   TRACK_LABEL_WIDTH,
+  ZOOM_STEP,
 } from "./constants";
 import { DraggableAsset } from "./draggable-asset";
 import { DroppableTrack } from "./droppable-track";
@@ -44,6 +48,8 @@ export function Timeline({
   clipMutations,
   onAssetDelete,
 }: TimelineProps) {
+  const [zoom, setZoom] = useState(1);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [dragState, setDragState] = useState<DragState>({
     type: null,
     activeAsset: null,
@@ -67,6 +73,15 @@ export function Timeline({
     30_000
   );
   const timelineDurationMs = Math.ceil(maxClipEndMs / 5000) * 5000 + 10_000;
+  const timelineWidth = msToPx(timelineDurationMs, zoom);
+
+  const handleZoomIn = useCallback(() => {
+    setZoom((prev) => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom((prev) => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+  }, []);
 
   const calculatePositionFromEvent = useCallback(
     (clientX: number, trackId: string): number => {
@@ -76,9 +91,9 @@ export function Timeline({
       }
       const trackRect = trackElement.getBoundingClientRect();
       const relativeX = clientX - trackRect.left - TRACK_LABEL_WIDTH;
-      return snapToGrid(Math.max(0, pxToMs(relativeX)), 100);
+      return snapToGrid(Math.max(0, pxToMs(relativeX, zoom)), 100);
     },
-    []
+    [zoom]
   );
 
   function handleDragStart(event: DragStartEvent) {
@@ -219,9 +234,9 @@ export function Timeline({
       onDragStart={handleDragStart}
       sensors={sensors}
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex h-full min-h-0 flex-col gap-4">
         {/* Assets Panel */}
-        <div className="rounded-lg border bg-card p-4">
+        <div className="shrink-0 rounded-lg border bg-card p-4">
           <h3 className="mb-3 font-medium text-muted-foreground text-sm">
             Media Assets
           </h3>
@@ -243,32 +258,65 @@ export function Timeline({
         </div>
 
         {/* Timeline */}
-        <div className="rounded-lg border bg-card">
-          <div className="border-b px-4 py-2">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col rounded-lg border bg-card">
+          {/* Timeline Header with Zoom Controls */}
+          <div className="flex shrink-0 items-center justify-between border-b px-4 py-2">
             <h3 className="font-medium text-muted-foreground text-sm">
               Timeline
             </h3>
+            <div className="flex items-center gap-2">
+              <button
+                aria-label="Zoom out"
+                className="flex h-7 w-7 items-center justify-center rounded border bg-background text-sm transition-colors hover:bg-muted disabled:opacity-50"
+                disabled={zoom <= MIN_ZOOM}
+                onClick={handleZoomOut}
+                type="button"
+              >
+                −
+              </button>
+              <span className="min-w-12 text-center font-mono text-muted-foreground text-xs">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                aria-label="Zoom in"
+                className="flex h-7 w-7 items-center justify-center rounded border bg-background text-sm transition-colors hover:bg-muted disabled:opacity-50"
+                disabled={zoom >= MAX_ZOOM}
+                onClick={handleZoomIn}
+                type="button"
+              >
+                +
+              </button>
+            </div>
           </div>
 
-          {/* Time Ruler */}
-          <TimeRuler
-            durationMs={timelineDurationMs}
-            timelineWidth={timelineDurationMs / 20}
-          />
+          {/* Scrollable Timeline Container */}
+          <div
+            className="min-h-0 flex-1 overflow-auto"
+            ref={scrollContainerRef}
+          >
+            <div
+              style={{
+                width: `${timelineWidth + TRACK_LABEL_WIDTH}px`,
+              }}
+            >
+              {/* Time Ruler */}
+              <TimeRuler durationMs={timelineDurationMs} zoom={zoom} />
 
-          {/* Tracks */}
-          <div className="overflow-x-auto">
-            {sortedTracks.map((track) => (
-              <div id={`track-${track.id}`} key={track.id}>
-                <DroppableTrack
-                  assets={assets}
-                  draggedClipId={dragState.activeClip?.id ?? null}
-                  onClipDelete={handleClipDelete}
-                  preview={getPreviewForTrack(track.id)}
-                  track={track}
-                />
-              </div>
-            ))}
+              {/* Tracks */}
+              {sortedTracks.map((track) => (
+                <div id={`track-${track.id}`} key={track.id}>
+                  <DroppableTrack
+                    assets={assets}
+                    draggedClipId={dragState.activeClip?.id ?? null}
+                    onClipDelete={handleClipDelete}
+                    preview={getPreviewForTrack(track.id)}
+                    timelineWidth={timelineWidth}
+                    track={track}
+                    zoom={zoom}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

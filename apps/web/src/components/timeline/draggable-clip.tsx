@@ -10,6 +10,7 @@ type DraggableClipProps = {
   clipBorderColor: string;
   onDelete: () => void;
   isDragging: boolean;
+  zoom: number;
 };
 
 export function DraggableClip({
@@ -20,14 +21,15 @@ export function DraggableClip({
   clipBorderColor,
   onDelete,
   isDragging,
+  zoom,
 }: DraggableClipProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: `clip-${clip.id}`,
     data: { type: "clip", clip },
   });
 
-  const leftPx = msToPx(clip.startMs);
-  const widthPx = msToPx(clip.durationMs);
+  const leftPx = msToPx(clip.startMs, zoom);
+  const widthPx = msToPx(clip.durationMs, zoom);
 
   return (
     <div

@@ -15,6 +15,8 @@ type DroppableTrackProps = {
   onClipDelete: (clipId: string) => void;
   preview: PreviewData | null;
   draggedClipId: string | null;
+  zoom: number;
+  timelineWidth: number;
 };
 
 export function DroppableTrack({
@@ -23,6 +25,8 @@ export function DroppableTrack({
   onClipDelete,
   preview,
   draggedClipId,
+  zoom,
+  timelineWidth,
 }: DroppableTrackProps) {
   const { clips } = track;
   const { isOver, setNodeRef } = useDroppable({
@@ -52,10 +56,10 @@ export function DroppableTrack({
 
   return (
     <div
-      className={`relative flex h-14 items-center border-b transition-all ${bgColor} ${overClasses} ${hoverBorder}`}
+      className={`relative flex h-14 items-center border-b transition-colors ${bgColor} ${overClasses} ${hoverBorder}`}
       ref={setNodeRef}
     >
-      {/* Track label */}
+      {/* Track label - fixed width */}
       <div
         className={`flex h-full shrink-0 items-center justify-center border-r ${borderColor}`}
         style={{ width: `${TRACK_LABEL_WIDTH}px` }}
@@ -68,8 +72,11 @@ export function DroppableTrack({
         </div>
       </div>
 
-      {/* Track content area */}
-      <div className="relative h-full flex-1 overflow-visible">
+      {/* Track content area - scrollable */}
+      <div
+        className="relative h-full overflow-visible"
+        style={{ width: `${timelineWidth}px` }}
+      >
         <div className="absolute inset-y-1 right-0 left-0">
           {/* Existing clips - draggable */}
           {clips.map((clip) => {
@@ -84,6 +91,7 @@ export function DroppableTrack({
                 isDragging={isDragging}
                 key={clip.id}
                 onDelete={() => onClipDelete(clip.id)}
+                zoom={zoom}
               />
             );
           })}
@@ -95,6 +103,7 @@ export function DroppableTrack({
               isClip={preview.isClip}
               isVideo={isVideo}
               positionMs={preview.positionMs}
+              zoom={zoom}
             />
           ) : null}
         </div>
@@ -115,14 +124,16 @@ function ClipPreview({
   durationMs,
   isVideo,
   isClip,
+  zoom,
 }: {
   positionMs: number;
   durationMs: number;
   isVideo: boolean;
   isClip: boolean;
+  zoom: number;
 }) {
-  const leftPx = msToPx(positionMs);
-  const widthPx = msToPx(durationMs);
+  const leftPx = msToPx(positionMs, zoom);
+  const widthPx = msToPx(durationMs, zoom);
   const previewColor = isVideo ? "border-blue-400" : "border-green-400";
   const previewBg = isVideo ? "bg-blue-400/30" : "bg-green-400/30";
 

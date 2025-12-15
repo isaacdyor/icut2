@@ -1,16 +1,19 @@
 // Timeline configuration
-export const PIXELS_PER_SECOND = 50;
+export const BASE_PIXELS_PER_SECOND = 50;
 export const DEFAULT_CLIP_DURATION_MS = 5000;
-export const TRACK_LABEL_WIDTH = 64; // 16 * 4 = w-16
+export const TRACK_LABEL_WIDTH = 64;
+export const MIN_ZOOM = 0.25;
+export const MAX_ZOOM = 4;
+export const ZOOM_STEP = 0.25;
 
-// Convert pixels to milliseconds
-export function pxToMs(px: number): number {
-  return (px / PIXELS_PER_SECOND) * 1000;
+// Convert pixels to milliseconds (with zoom)
+export function pxToMs(px: number, zoom = 1): number {
+  return (px / (BASE_PIXELS_PER_SECOND * zoom)) * 1000;
 }
 
-// Convert milliseconds to pixels
-export function msToPx(ms: number): number {
-  return (ms / 1000) * PIXELS_PER_SECOND;
+// Convert milliseconds to pixels (with zoom)
+export function msToPx(ms: number, zoom = 1): number {
+  return (ms / 1000) * BASE_PIXELS_PER_SECOND * zoom;
 }
 
 // Format milliseconds to time string (MM:SS.ms)
