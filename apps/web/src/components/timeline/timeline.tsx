@@ -5,28 +5,51 @@ import {
   type DragStartEvent,
   pointerWithin,
 } from "@dnd-kit/core";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import type { Asset } from "@/lib/collections/asset";
+import type { Asset, Track } from "@/lib/types";
+import { client } from "@/utils/orpc";
 import { DraggableAsset } from "./draggable-asset";
 import { DroppableTrack } from "./droppable-track";
-
-type Track = {
-  id: string;
-  name: string;
-  type: "video" | "audio";
-  order: number;
-};
 
 type TimelineProps = {
   assets: Asset[];
   tracks: Track[];
+  projectId: string;
   onAssetDelete: (assetId: string) => void;
 };
 
-export function Timeline({ assets, tracks, onAssetDelete }: TimelineProps) {
+const DEFAULT_CLIP_DURATION_MS = 5000;
+
+export function Timeline({
+  assets,
+  tracks,
+  projectId,
+  onAssetDelete,
+}: TimelineProps) {
   const [activeAsset, setActiveAsset] = useState<Asset | null>(null);
+  const queryClient = useQueryClient();
 
   const sortedTracks = [...tracks].sort((a, b) => a.order - b.order);
+
+  const createClipMutation = useMutation({
+    mutationFn: (params: {
+      trackId: string;
+      assetId: string;
+      startMs: number;
+      durationMs: number;
+    }) => client.clip.create(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+    },
+  });
+
+  const deleteClipMutation = useMutation({
+    mutationFn: (clipId: string) => client.clip.delete({ id: clipId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+    },
+  });
 
   function handleDragStart(event: DragStartEvent) {
     const asset = assets.find((a) => a.id === event.active.id);
@@ -44,20 +67,12 @@ export function Timeline({ assets, tracks, onAssetDelete }: TimelineProps) {
       const targetTrack = tracks.find((t) => t.id === over.id);
 
       if (droppedAsset && targetTrack) {
-        console.log("=== Drag & Drop Event ===");
-        console.log("Asset dropped:", {
-          id: droppedAsset.id,
-          name: droppedAsset.name,
-          type: droppedAsset.type,
-          url: droppedAsset.url,
+        createClipMutation.mutate({
+          trackId: targetTrack.id,
+          assetId: droppedAsset.id,
+          startMs: 0,
+          durationMs: DEFAULT_CLIP_DURATION_MS,
         });
-        console.log("Target track:", {
-          id: targetTrack.id,
-          name: targetTrack.name,
-          type: targetTrack.type,
-          order: targetTrack.order,
-        });
-        console.log("========================");
       }
     }
   }
@@ -100,7 +115,12 @@ export function Timeline({ assets, tracks, onAssetDelete }: TimelineProps) {
           </div>
           <div className="p-2">
             {sortedTracks.map((track) => (
-              <DroppableTrack key={track.id} track={track} />
+              <DroppableTrack
+                assets={assets}
+                key={track.id}
+                onClipDelete={(clipId) => deleteClipMutation.mutate(clipId)}
+                track={track}
+              />
             ))}
           </div>
         </div>

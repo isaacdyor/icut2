@@ -73,6 +73,7 @@ function RouteComponent() {
           <Timeline
             assets={assets.data ?? []}
             onAssetDelete={(assetId) => assetCollection.delete(assetId)}
+            projectId={id}
             tracks={project.data.tracks}
           />
         </div>

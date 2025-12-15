@@ -1,17 +1,19 @@
 import { useDroppable } from "@dnd-kit/core";
-
-type Track = {
-  id: string;
-  name: string;
-  type: "video" | "audio";
-  order: number;
-};
+import type { Asset, Track } from "@/lib/types";
 
 type DroppableTrackProps = {
   track: Track;
+  assets: Asset[];
+  onClipDelete?: (clipId: string) => void;
 };
 
-export function DroppableTrack({ track }: DroppableTrackProps) {
+const PIXELS_PER_SECOND = 50;
+
+export function DroppableTrack({
+  track,
+  assets,
+  onClipDelete,
+}: DroppableTrackProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: track.id,
   });
@@ -27,6 +29,15 @@ export function DroppableTrack({ track }: DroppableTrackProps) {
   const overClasses = isOver
     ? `${activeBorder} border-2 bg-opacity-30`
     : borderColor;
+  const clipBgColor = isVideo ? "bg-blue-500/30" : "bg-green-500/30";
+  const clipBorderColor = isVideo
+    ? "border-blue-500/50"
+    : "border-green-500/50";
+
+  function getAssetName(assetId: string): string {
+    const asset = assets.find((a) => a.id === assetId);
+    return asset?.name ?? "Unknown";
+  }
 
   return (
     <div
@@ -44,13 +55,57 @@ export function DroppableTrack({ track }: DroppableTrackProps) {
       </div>
 
       {/* Track content area */}
-      <div className="relative flex-1 px-2">
-        {isOver ? (
-          <div className="flex h-10 items-center justify-center rounded border-2 border-current border-dashed text-muted-foreground">
+      <div className="relative h-full flex-1 overflow-hidden">
+        {track.clips.length > 0 ? (
+          <div className="absolute inset-y-2 right-0 left-0">
+            {track.clips.map((clip) => {
+              const leftPx = (clip.startMs / 1000) * PIXELS_PER_SECOND;
+              const widthPx = (clip.durationMs / 1000) * PIXELS_PER_SECOND;
+
+              return (
+                <div
+                  className={`group absolute top-0 bottom-0 flex items-center rounded border px-2 ${clipBgColor} ${clipBorderColor}`}
+                  key={clip.id}
+                  style={{
+                    left: `${leftPx}px`,
+                    width: `${widthPx}px`,
+                    minWidth: "60px",
+                  }}
+                >
+                  <span className="truncate font-medium text-xs">
+                    {getAssetName(clip.assetId)}
+                  </span>
+                  {onClipDelete ? (
+                    <button
+                      aria-label="Delete clip"
+                      className="-top-1 -right-1 absolute flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                      onClick={() => onClipDelete(clip.id)}
+                      type="button"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        fill="none"
+                        height="8"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                        width="8"
+                      >
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                      </svg>
+                    </button>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : isOver ? (
+          <div className="flex h-full items-center justify-center rounded border-2 border-current border-dashed text-muted-foreground">
             <span className="text-xs">Drop here</span>
           </div>
         ) : (
-          <div className="flex h-full items-center text-muted-foreground/50 text-xs">
+          <div className="flex h-full items-center px-2 text-muted-foreground/50 text-xs">
             Drag assets here to add to timeline
           </div>
         )}

@@ -1,5 +1,5 @@
 import { useDraggable } from "@dnd-kit/core";
-import type { Asset } from "@/lib/collections/asset";
+import type { Asset } from "@/lib/types";
 
 type DraggableAssetProps = {
   asset: Asset;
