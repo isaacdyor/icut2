@@ -3,6 +3,7 @@ import { db } from "@t-example/db";
 import { and, eq } from "@t-example/db/drizzle";
 import {
   assetSelectSchema,
+  clipSelectSchema,
   project,
   projectInsertSchema,
   projectSelectSchema,
@@ -29,7 +30,11 @@ export const projectRouter = {
     .output(
       projectSelectSchema.extend({
         assets: z.array(assetSelectSchema),
-        tracks: z.array(trackSelectSchema),
+        tracks: z.array(
+          trackSelectSchema.extend({
+            clips: z.array(clipSelectSchema),
+          })
+        ),
       })
     )
     .handler(async ({ input, context }) => {
@@ -42,6 +47,11 @@ export const projectRouter = {
           assets: true,
           tracks: {
             orderBy: (t, { asc }) => [asc(t.order)],
+            with: {
+              clips: {
+                orderBy: (c, { asc }) => [asc(c.startMs)],
+              },
+            },
           },
         },
       });

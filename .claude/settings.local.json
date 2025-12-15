@@ -17,7 +17,11 @@
       "Bash(bun db:push:*)",
       "Bash(lsof:*)",
       "Bash(pkill:*)",
-      "Bash(bun install:*)"
+      "Bash(bun install:*)",
+      "Bash(tree:*)",
+      "Bash(bun ultracite fix:*)",
+      "Bash(bun ultracite check:*)",
+      "Bash(bun run:*)"
     ],
     "deny": [],
     "ask": []

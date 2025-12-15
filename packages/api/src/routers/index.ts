@@ -1,6 +1,7 @@
 import type { RouterClient } from "@orpc/server";
 import { publicProcedure } from "../index";
 import { assetRouter } from "./asset";
+import { clipRouter } from "./clip";
 import { projectRouter } from "./project";
 import { trackRouter } from "./track";
 
@@ -11,6 +12,7 @@ export const appRouter = {
   project: projectRouter,
   asset: assetRouter,
   track: trackRouter,
+  clip: clipRouter,
 };
 export type AppRouter = typeof appRouter;
 export type AppRouterClient = RouterClient<typeof appRouter>;

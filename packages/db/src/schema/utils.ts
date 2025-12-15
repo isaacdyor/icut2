@@ -9,7 +9,9 @@ export { createSelectSchema } from "drizzle-zod";
 
 type ServerOmitKeys = "id" | "userId" | "createdAt" | "updatedAt";
 
-export const createInsertSchema = <T extends Parameters<typeof baseCreateInsertSchema>[0]>(
+export const createInsertSchema = <
+  T extends Parameters<typeof baseCreateInsertSchema>[0],
+>(
   table: T
 ) => {
   const schema = baseCreateInsertSchema(table);
@@ -22,10 +24,14 @@ export const createInsertSchema = <T extends Parameters<typeof baseCreateInsertS
       acc[key] = true;
       return acc;
     }, {});
-  return schema.omit(keysToOmit as { [K in keyof Shape]?: true }) as z.ZodObject<OmittedShape>;
+  return schema.omit(
+    keysToOmit as { [K in keyof Shape]?: true }
+  ) as z.ZodObject<OmittedShape>;
 };
 
-export const createUpdateSchema = <T extends Parameters<typeof baseCreateUpdateSchema>[0]>(
+export const createUpdateSchema = <
+  T extends Parameters<typeof baseCreateUpdateSchema>[0],
+>(
   table: T
 ) => {
   const schema = baseCreateUpdateSchema(table);
@@ -38,5 +44,7 @@ export const createUpdateSchema = <T extends Parameters<typeof baseCreateUpdateS
       acc[key] = true;
       return acc;
     }, {});
-  return schema.omit(keysToOmit as { [K in keyof Shape]?: true }) as z.ZodObject<OmittedShape>;
+  return schema.omit(
+    keysToOmit as { [K in keyof Shape]?: true }
+  ) as z.ZodObject<OmittedShape>;
 };

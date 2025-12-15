@@ -1,4 +1,4 @@
-import type { Asset } from "@/lib/collections/asset";
+import type { Asset } from "@/lib/types";
 
 type AssetThumbnailProps = {
   asset: Asset;
