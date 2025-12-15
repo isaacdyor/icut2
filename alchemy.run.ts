@@ -9,19 +9,16 @@ config({ path: "./apps/server/.env" });
 const app = await alchemy("t-example");
 
 export const assetsBucket = await R2Bucket("assets", {
+  name: "assets",
   devDomain: true,
   cors: [
     {
       allowed: {
-        origins: ["*"],
-        methods: ["GET", "PUT", "POST", "DELETE", "HEAD"],
-        headers: [
-          "content-type",
-          "content-length",
-          "x-amz-checksum-crc32",
-          "x-amz-sdk-checksum-algorithm",
-        ],
+        origins: ["http://localhost:3001", "http://127.0.0.1:3001"],
+        methods: ["GET", "HEAD", "PUT"],
+        headers: ["*"],
       },
+      exposeHeaders: ["ETag"],
       maxAgeSeconds: 3600,
     },
   ],

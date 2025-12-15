@@ -32,13 +32,10 @@ export function AssetDropzone({
 
         try {
           const { uploadUrl, publicUrl } = await client.asset.getUploadUrl({
-            projectId,
-            filename: file.name,
+            key: `${projectId}/${file.name}`,
             contentType: file.type,
           });
-
           console.log("uploadUrl ❤️❤️❤️❤️❤️❤️❤️❤️", uploadUrl);
-
           await fetch(uploadUrl, {
             method: "PUT",
             body: file,
