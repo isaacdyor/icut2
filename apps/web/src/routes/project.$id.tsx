@@ -11,7 +11,7 @@ import {
 } from "@dnd-kit/core";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MediaBin } from "@/components/editor/media-bin";
 import { PreviewPlayer } from "@/components/editor/preview-player";
 import {
@@ -27,6 +27,7 @@ import {
   createClipMutations,
   getProjectCollection,
 } from "@/lib/collections/project";
+import { usePlaybackEngine } from "@/lib/playback";
 import type { Asset } from "@/lib/types";
 
 export const Route = createFileRoute("/project/$id")({
@@ -92,8 +93,8 @@ function ProjectView({
   projectCollection: ReturnType<typeof getProjectCollection>;
   projectData: ProjectData;
 }) {
-  const [currentTimeMs, setCurrentTimeMs] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const playback = usePlaybackEngine();
+  const [playheadMs, setPlayheadMs] = useState(0);
   const [dragState, setDragState] = useState<DragState>({
     activeClip: null,
     previewTrackId: null,
@@ -110,6 +111,13 @@ function ProjectView({
     [projectCollection, projectData]
   );
 
+  const maxClipEndMs = Math.max(
+    ...projectData.tracks.flatMap((t) =>
+      t.clips.map((c) => c.startMs + c.durationMs)
+    ),
+    30_000
+  );
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -118,13 +126,143 @@ function ProjectView({
     })
   );
 
-  const handlePlayPause = useCallback(() => {
-    setIsPlaying((prev) => !prev);
-  }, []);
+  const getActiveVideoAtTime = useCallback(
+    (timeMs: number) => {
+      const videoTrack = projectData.tracks.find((t) => t.type === "video");
+      if (!videoTrack) {
+        return { clip: null, asset: null, localTimeMs: 0 };
+      }
 
-  const handleSeek = useCallback((timeMs: number) => {
-    setCurrentTimeMs(timeMs);
-  }, []);
+      const clip = videoTrack.clips.find(
+        (c) => timeMs >= c.startMs && timeMs < c.startMs + c.durationMs
+      );
+      if (!clip) {
+        return { clip: null, asset: null, localTimeMs: 0 };
+      }
+
+      const asset =
+        projectData.assets.find((a) => a.id === clip.assetId) ?? null;
+      return { clip, asset, localTimeMs: Math.max(0, timeMs - clip.startMs) };
+    },
+    [projectData.assets, projectData.tracks]
+  );
+
+  const loadedUrlRef = useRef<string | null>(null);
+  const loadInFlightRef = useRef<{
+    url: string;
+    promise: Promise<void>;
+  } | null>(null);
+  const loadAndSeek = useCallback(
+    async (url: string, localTimeMs: number) => {
+      const fetchableUrl = import.meta.env.DEV
+        ? `/__media_proxy?url=${encodeURIComponent(url)}`
+        : url;
+
+      if (loadedUrlRef.current !== fetchableUrl) {
+        loadedUrlRef.current = fetchableUrl;
+        const inFlight = loadInFlightRef.current;
+        if (inFlight?.url === fetchableUrl) {
+          await inFlight.promise;
+        } else {
+          const promise = playback.load(fetchableUrl);
+          loadInFlightRef.current = { url: fetchableUrl, promise };
+          try {
+            await promise;
+          } finally {
+            if (loadInFlightRef.current?.url === fetchableUrl) {
+              loadInFlightRef.current = null;
+            }
+          }
+        }
+      }
+      // Avoid triggering mp4box seek at t=0 (it returns a byte offset and can require re-append).
+      // Starting from 0 works without an explicit seek.
+      if (localTimeMs > 0) {
+        playback.seek(localTimeMs);
+      }
+    },
+    [playback]
+  );
+
+  const findNextVideoClipStart = useCallback(
+    (timeMs: number) => {
+      const videoTrack = projectData.tracks.find((t) => t.type === "video");
+      if (!videoTrack) {
+        return null;
+      }
+      return (
+        videoTrack.clips
+          .filter((c) => c.startMs >= timeMs)
+          .sort((a, b) => a.startMs - b.startMs)[0] ?? null
+      );
+    },
+    [projectData.tracks]
+  );
+
+  const handleSeek = useCallback(
+    (timeMs: number) => {
+      const clamped = Math.max(0, Math.min(timeMs, maxClipEndMs));
+      setPlayheadMs(clamped);
+
+      const { asset, localTimeMs } = getActiveVideoAtTime(clamped);
+      if (asset?.type === "video" && asset.url) {
+        loadAndSeek(asset.url, localTimeMs).catch((error) => {
+          // Hook stores the error for UI; also log for debugging.
+          // eslint-disable-next-line no-console
+          console.error(error);
+        });
+      } else {
+        playback.pause();
+      }
+    },
+    [getActiveVideoAtTime, loadAndSeek, maxClipEndMs, playback]
+  );
+
+  const playFromTime = useCallback(
+    async (timeMs: number) => {
+      // If we're not on a video clip, jump to the next one.
+      const { clip, asset, localTimeMs } = getActiveVideoAtTime(timeMs);
+      if (asset?.type === "video" && asset.url && clip) {
+        await loadAndSeek(asset.url, localTimeMs);
+        playback.play();
+        return;
+      }
+
+      const nextClip = findNextVideoClipStart(timeMs);
+      if (!nextClip) {
+        return;
+      }
+
+      const nextAsset =
+        projectData.assets.find((a) => a.id === nextClip.assetId) ?? null;
+      if (nextAsset?.type !== "video" || !nextAsset.url) {
+        return;
+      }
+
+      setPlayheadMs(nextClip.startMs);
+      await loadAndSeek(nextAsset.url, 0);
+      playback.play();
+    },
+    [
+      findNextVideoClipStart,
+      getActiveVideoAtTime,
+      loadAndSeek,
+      playback,
+      projectData.assets,
+    ]
+  );
+
+  const handlePlayPause = useCallback(() => {
+    if (playback.isPlaying) {
+      playback.pause();
+      return;
+    }
+
+    playFromTime(playheadMs).catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error(error);
+    });
+  }, [playFromTime, playheadMs, playback]);
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
@@ -291,12 +429,78 @@ function ProjectView({
     y: 0,
   });
 
-  const maxClipEndMs = Math.max(
-    ...projectData.tracks.flatMap((t) =>
-      t.clips.map((c) => c.startMs + c.durationMs)
-    ),
-    30_000
+  const activeVideo = useMemo(
+    () => getActiveVideoAtTime(playheadMs),
+    [getActiveVideoAtTime, playheadMs]
   );
+
+  // While playing, drive the global playhead from the engine's local time.
+  useEffect(() => {
+    if (!playback.isPlaying) {
+      return;
+    }
+    if (!activeVideo.clip) {
+      return;
+    }
+    const nextGlobal = activeVideo.clip.startMs + playback.currentTimeMs;
+    setPlayheadMs(Math.min(nextGlobal, maxClipEndMs));
+  }, [
+    activeVideo.clip,
+    maxClipEndMs,
+    playback.currentTimeMs,
+    playback.isPlaying,
+  ]);
+
+  // Auto-advance to the next clip when current one ends.
+  useEffect(() => {
+    if (!playback.isPlaying) {
+      return;
+    }
+    if (!activeVideo.clip) {
+      return;
+    }
+
+    const clip = activeVideo.clip;
+    if (playback.currentTimeMs < clip.durationMs) {
+      return;
+    }
+
+    const videoTrack = projectData.tracks.find((t) => t.type === "video");
+    const nextClip =
+      videoTrack?.clips
+        .filter((c) => c.startMs >= clip.startMs + clip.durationMs)
+        .sort((a, b) => a.startMs - b.startMs)[0] ?? null;
+
+    if (!nextClip) {
+      playback.pause();
+      setPlayheadMs(Math.min(clip.startMs + clip.durationMs, maxClipEndMs));
+      return;
+    }
+
+    const nextAsset =
+      projectData.assets.find((a) => a.id === nextClip.assetId) ?? null;
+    if (nextAsset?.type !== "video" || !nextAsset.url) {
+      playback.pause();
+      setPlayheadMs(Math.min(clip.startMs + clip.durationMs, maxClipEndMs));
+      return;
+    }
+
+    setPlayheadMs(nextClip.startMs);
+    loadAndSeek(nextAsset.url, 0)
+      .then(() => playback.play())
+      .catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error(error);
+        playback.pause();
+      });
+  }, [
+    activeVideo.clip,
+    loadAndSeek,
+    maxClipEndMs,
+    playback,
+    projectData.assets,
+    projectData.tracks,
+  ]);
 
   return (
     <DndContext
@@ -323,9 +527,12 @@ function ProjectView({
           {/* Right: Preview Player */}
           <div className="w-1/2 min-w-0">
             <PreviewPlayer
-              currentTimeMs={currentTimeMs}
+              clipTimeMs={activeVideo.localTimeMs}
+              currentTimeMs={playheadMs}
               durationMs={maxClipEndMs}
               onSeek={handleSeek}
+              playback={playback}
+              videoAsset={activeVideo.asset}
             />
           </div>
         </div>
@@ -335,9 +542,9 @@ function ProjectView({
           <Timeline
             assets={projectData.assets}
             clipMutations={clipMutations}
-            currentTimeMs={currentTimeMs}
+            currentTimeMs={playheadMs}
             dragState={dragState}
-            isPlaying={isPlaying}
+            isPlaying={playback.isPlaying}
             onPlayPause={handlePlayPause}
             onSeek={handleSeek}
             tracks={projectData.tracks}

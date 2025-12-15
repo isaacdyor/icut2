@@ -6,6 +6,7 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   msToPx,
+  pxToMs,
   TRACK_LABEL_WIDTH,
   ZOOM_STEP,
 } from "./constants";
@@ -42,10 +43,13 @@ export function Timeline({
   currentTimeMs,
   isPlaying,
   onPlayPause,
+  onSeek,
   dragState,
 }: TimelineProps) {
   const [zoom, setZoom] = useState(1);
+  const [isScrubbing, setIsScrubbing] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const timelineContentRef = useRef<HTMLDivElement>(null);
 
   const sortedTracks = [...tracks].sort((a, b) => a.order - b.order);
 
@@ -90,6 +94,58 @@ export function Timeline({
   );
 
   const playheadPosition = msToPx(currentTimeMs, zoom);
+
+  // Calculate time from mouse position
+  const getTimeFromMouseEvent = useCallback(
+    (e: React.MouseEvent | MouseEvent) => {
+      if (!timelineContentRef.current) {
+        return 0;
+      }
+      const rect = timelineContentRef.current.getBoundingClientRect();
+      const relativeX = e.clientX - rect.left - TRACK_LABEL_WIDTH;
+      const timeMs = pxToMs(Math.max(0, relativeX), zoom);
+      return Math.max(0, Math.min(timeMs, timelineDurationMs));
+    },
+    [zoom, timelineDurationMs]
+  );
+
+  // Handle click on timeline to seek
+  const handleTimelineClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Don't seek if clicking on a clip or control
+      if ((e.target as HTMLElement).closest("[data-clip]")) {
+        return;
+      }
+      const timeMs = getTimeFromMouseEvent(e);
+      onSeek(timeMs);
+    },
+    [getTimeFromMouseEvent, onSeek]
+  );
+
+  // Handle scrubbing (drag to seek)
+  const handleScrubStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsScrubbing(true);
+      const timeMs = getTimeFromMouseEvent(e);
+      onSeek(timeMs);
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const newTimeMs = getTimeFromMouseEvent(moveEvent);
+        onSeek(newTimeMs);
+      };
+
+      const handleMouseUp = () => {
+        setIsScrubbing(false);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [getTimeFromMouseEvent, onSeek]
+  );
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col rounded-lg border bg-card">
@@ -154,10 +210,26 @@ export function Timeline({
       {/* Scrollable Timeline Container */}
       <div className="min-h-0 flex-1 overflow-auto" ref={scrollContainerRef}>
         <div
-          className="relative"
+          aria-label="Timeline scrubber"
+          aria-valuemax={timelineDurationMs}
+          aria-valuemin={0}
+          aria-valuenow={currentTimeMs}
+          className={`relative ${isScrubbing ? "cursor-grabbing" : "cursor-pointer"}`}
+          onClick={handleTimelineClick}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") {
+              onSeek(Math.max(0, currentTimeMs - 1000));
+            } else if (e.key === "ArrowRight") {
+              onSeek(Math.min(timelineDurationMs, currentTimeMs + 1000));
+            }
+          }}
+          onMouseDown={handleScrubStart}
+          ref={timelineContentRef}
+          role="slider"
           style={{
             width: `${timelineWidth + TRACK_LABEL_WIDTH}px`,
           }}
+          tabIndex={0}
         >
           {/* Time Ruler */}
           <TimeRuler durationMs={timelineDurationMs} zoom={zoom} />
