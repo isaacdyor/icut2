@@ -20,7 +20,8 @@
       "Bash(bun install:*)",
       "Bash(tree:*)",
       "Bash(bun ultracite fix:*)",
-      "Bash(bun ultracite check:*)"
+      "Bash(bun ultracite check:*)",
+      "Bash(bun run:*)"
     ],
     "deny": [],
     "ask": []
