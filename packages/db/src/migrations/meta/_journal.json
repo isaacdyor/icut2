@@ -15,6 +15,13 @@
       "when": 1765154623289,
       "tag": "0001_magenta_starjammers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765758172069,
+      "tag": "0002_narrow_nekra",
+      "breakpoints": true
     }
   ]
 }

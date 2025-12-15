@@ -137,6 +137,7 @@
         "@neondatabase/serverless": "^1.0.2",
         "dotenv": "catalog:",
         "drizzle-orm": "catalog:",
+        "drizzle-zod": "^0.8.3",
         "ws": "^8.18.3",
         "zod": "^4.1.11",
       },

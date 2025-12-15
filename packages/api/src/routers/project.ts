@@ -7,6 +7,8 @@ import {
   projectInsertSchema,
   projectSelectSchema,
   projectUpdateSchema,
+  track,
+  trackSelectSchema,
 } from "@t-example/db/schema/app";
 import { z } from "zod";
 import { protectedProcedure } from "../index";
@@ -24,7 +26,12 @@ export const projectRouter = {
   getById: protectedProcedure
     .route({ method: "GET", path: "/projects/{id}" })
     .input(z.object({ id: z.string() }))
-    .output(projectSelectSchema.extend({ assets: z.array(assetSelectSchema) }))
+    .output(
+      projectSelectSchema.extend({
+        assets: z.array(assetSelectSchema),
+        tracks: z.array(trackSelectSchema),
+      })
+    )
     .handler(async ({ input, context }) => {
       const proj = await db.query.project.findFirst({
         where: and(
@@ -33,6 +40,9 @@ export const projectRouter = {
         ),
         with: {
           assets: true,
+          tracks: {
+            orderBy: (t, { asc }) => [asc(t.order)],
+          },
         },
       });
 
@@ -46,22 +56,32 @@ export const projectRouter = {
   create: protectedProcedure
     .route({ method: "POST", path: "/projects" })
     .input(projectInsertSchema)
-    .output(projectSelectSchema)
-    .handler(async ({ input, context }) => {
-      const [created] = await db
-        .insert(project)
-        .values({
-          userId: context.session.user.id,
-          ...input,
-        })
-        .returning();
+    .output(projectSelectSchema.extend({ tracks: z.array(trackSelectSchema) }))
+    .handler(async ({ input, context }) =>
+      db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(project)
+          .values({
+            name: input.name,
+            userId: context.session.user.id,
+          })
+          .returning();
 
-      if (!created) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR");
-      }
+        if (!created) {
+          throw new ORPCError("INTERNAL_SERVER_ERROR");
+        }
 
-      return created;
-    }),
+        const defaultTracks = [
+          { projectId: created.id, name: "V1", type: "video" as const, order: 0 },
+          { projectId: created.id, name: "A1", type: "audio" as const, order: 1 },
+          { projectId: created.id, name: "A2", type: "audio" as const, order: 2 },
+        ];
+
+        const tracks = await tx.insert(track).values(defaultTracks).returning();
+
+        return { ...created, tracks };
+      })
+    ),
 
   update: protectedProcedure
     .route({ method: "PATCH", path: "/projects/{id}" })

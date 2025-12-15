@@ -80,6 +80,7 @@ export const track = pgTable(
       .notNull()
       .references(() => project.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    type: text("type", { enum: ["video", "audio"] }).notNull(),
     order: integer("order").notNull(), // Vertical stacking
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
