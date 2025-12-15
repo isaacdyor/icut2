@@ -2,7 +2,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AssetDropzone } from "@/components/asset-dropzone";
-import { AssetThumbnail } from "@/components/asset-thumbnail";
+import { Timeline } from "@/components/timeline/timeline";
 import { authClient } from "@/lib/auth-client";
 import { getAssetCollection } from "@/lib/collections/asset";
 import { orpc } from "@/utils/orpc";
@@ -46,65 +46,36 @@ function RouteComponent() {
   }
 
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="mb-4 font-bold text-3xl">{project.data.name}</h1>
-
-      <div className="mb-6">
-        <h2 className="mb-3 font-semibold text-lg">Tracks</h2>
-        {project.data.tracks.length > 0 ? (
-          <div className="space-y-2">
-            {project.data.tracks.map((track) => (
-              <div
-                className="flex items-center gap-3 rounded-md border bg-muted/50 p-3"
-                key={track.id}
-              >
-                <span
-                  className={`rounded px-2 py-1 font-mono text-xs ${
-                    track.type === "video"
-                      ? "bg-blue-500/20 text-blue-500"
-                      : "bg-green-500/20 text-green-500"
-                  }`}
-                >
-                  {track.type}
-                </span>
-                <span className="font-medium">{track.name}</span>
-              </div>
-            ))}
+    <div className="flex h-screen flex-col">
+      {/* Header */}
+      <div className="shrink-0 border-b bg-background px-6 py-4">
+        <div className="flex items-center justify-between">
+          <h1 className="font-bold text-2xl">{project.data.name}</h1>
+          <div className="flex items-center gap-4 text-muted-foreground text-sm">
+            <span>ID: {project.data.id.slice(0, 8)}...</span>
+            <span>
+              Updated: {new Date(project.data.updatedAt).toLocaleDateString()}
+            </span>
           </div>
-        ) : (
-          <p className="text-muted-foreground text-sm">No tracks</p>
-        )}
+        </div>
       </div>
 
-      <div className="mb-6">
-        <h2 className="mb-3 font-semibold text-lg">Assets</h2>
-        <AssetDropzone assetCollection={assetCollection} projectId={id} />
+      {/* Main Content Area */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Upload Section */}
+        <div className="shrink-0 border-b bg-muted/30 p-4">
+          <h2 className="mb-2 font-semibold text-sm">Upload Media</h2>
+          <AssetDropzone assetCollection={assetCollection} projectId={id} />
+        </div>
 
-        {assets.data?.length > 0 ? (
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {assets.data.map((asset) => (
-              <AssetThumbnail
-                asset={asset}
-                key={asset.id}
-                onDelete={() => assetCollection.delete(asset.id)}
-              />
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="space-y-2 text-muted-foreground text-sm">
-        <p>
-          <span className="font-medium">ID:</span> {project.data.id}
-        </p>
-        <p>
-          <span className="font-medium">Created:</span>{" "}
-          {new Date(project.data.createdAt).toLocaleString()}
-        </p>
-        <p>
-          <span className="font-medium">Last Updated:</span>{" "}
-          {new Date(project.data.updatedAt).toLocaleString()}
-        </p>
+        {/* Timeline Section */}
+        <div className="flex-1 overflow-auto p-4">
+          <Timeline
+            assets={assets.data ?? []}
+            onAssetDelete={(assetId) => assetCollection.delete(assetId)}
+            tracks={project.data.tracks}
+          />
+        </div>
       </div>
     </div>
   );
