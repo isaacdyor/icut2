@@ -1,11 +1,14 @@
 import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { AssetDropzone } from "@/components/asset-dropzone";
 import { Timeline } from "@/components/timeline/timeline";
 import { authClient } from "@/lib/auth-client";
-import { getAssetCollection } from "@/lib/collections/asset";
-import { orpc } from "@/utils/orpc";
+import {
+  createAssetMutations,
+  createClipMutations,
+  getProjectCollection,
+} from "@/lib/collections/project";
 
 export const Route = createFileRoute("/project/$id")({
   component: RouteComponent,
@@ -23,13 +26,12 @@ export const Route = createFileRoute("/project/$id")({
 
 function RouteComponent() {
   const { id } = Route.useParams();
-  const project = useQuery(
-    orpc.project.getById.queryOptions({ input: { id } })
-  );
-  const assetCollection = getAssetCollection(id);
-  const assets = useLiveQuery((q) => q.from({ assets: assetCollection }));
+  const projectCollection = getProjectCollection(id);
 
-  if (project.isLoading) {
+  const project = useLiveQuery((q) => q.from({ project: projectCollection }));
+  const projectData = project.data?.[0];
+
+  if (!projectData) {
     return (
       <div className="container mx-auto p-8">
         <p>Loading project...</p>
@@ -37,24 +39,45 @@ function RouteComponent() {
     );
   }
 
-  if (project.error || !project.data) {
-    return (
-      <div className="container mx-auto p-8">
-        <p className="text-destructive">Project not found</p>
-      </div>
-    );
-  }
+  return (
+    <ProjectView
+      projectCollection={projectCollection}
+      projectData={projectData}
+      projectId={id}
+    />
+  );
+}
+
+type ProjectData = Parameters<typeof createAssetMutations>[1];
+
+function ProjectView({
+  projectId,
+  projectCollection,
+  projectData,
+}: {
+  projectId: string;
+  projectCollection: ReturnType<typeof getProjectCollection>;
+  projectData: ProjectData;
+}) {
+  const assetMutations = useMemo(
+    () => createAssetMutations(projectCollection, projectData),
+    [projectCollection, projectData]
+  );
+  const clipMutations = useMemo(
+    () => createClipMutations(projectCollection, projectData),
+    [projectCollection, projectData]
+  );
 
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
       <div className="shrink-0 border-b bg-background px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="font-bold text-2xl">{project.data.name}</h1>
+          <h1 className="font-bold text-2xl">{projectData.name}</h1>
           <div className="flex items-center gap-4 text-muted-foreground text-sm">
-            <span>ID: {project.data.id.slice(0, 8)}...</span>
+            <span>ID: {projectData.id.slice(0, 8)}...</span>
             <span>
-              Updated: {new Date(project.data.updatedAt).toLocaleDateString()}
+              Updated: {new Date(projectData.updatedAt).toLocaleDateString()}
             </span>
           </div>
         </div>
@@ -65,16 +88,19 @@ function RouteComponent() {
         {/* Upload Section */}
         <div className="shrink-0 border-b bg-muted/30 p-4">
           <h2 className="mb-2 font-semibold text-sm">Upload Media</h2>
-          <AssetDropzone assetCollection={assetCollection} projectId={id} />
+          <AssetDropzone
+            assetMutations={assetMutations}
+            projectId={projectId}
+          />
         </div>
 
         {/* Timeline Section */}
         <div className="flex-1 overflow-auto p-4">
           <Timeline
-            assets={assets.data ?? []}
-            onAssetDelete={(assetId) => assetCollection.delete(assetId)}
-            projectId={id}
-            tracks={project.data.tracks}
+            assets={projectData.assets}
+            clipMutations={clipMutations}
+            onAssetDelete={(assetId) => assetMutations.delete(assetId)}
+            tracks={projectData.tracks}
           />
         </div>
       </div>

@@ -14,6 +14,7 @@ export function DroppableTrack({
   assets,
   onClipDelete,
 }: DroppableTrackProps) {
+  const { clips } = track;
   const { isOver, setNodeRef } = useDroppable({
     id: track.id,
   });
@@ -56,9 +57,9 @@ export function DroppableTrack({
 
       {/* Track content area */}
       <div className="relative h-full flex-1 overflow-hidden">
-        {track.clips.length > 0 ? (
+        {clips.length > 0 ? (
           <div className="absolute inset-y-2 right-0 left-0">
-            {track.clips.map((clip) => {
+            {clips.map((clip) => {
               const leftPx = (clip.startMs / 1000) * PIXELS_PER_SECOND;
               const widthPx = (clip.durationMs / 1000) * PIXELS_PER_SECOND;
 

@@ -6,4 +6,4 @@ type RouterOutputs = InferRouterOutputs<AppRouter>;
 export type Project = RouterOutputs["project"]["getById"];
 export type Asset = RouterOutputs["asset"]["getById"];
 export type Track = Project["tracks"][number];
-export type Clip = Track["clips"][number];
+export type Clip = RouterOutputs["clip"]["getById"];

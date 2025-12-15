@@ -5,17 +5,16 @@ import {
   type DragStartEvent,
   pointerWithin,
 } from "@dnd-kit/core";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import type { createClipMutations } from "@/lib/collections/project";
 import type { Asset, Track } from "@/lib/types";
-import { client } from "@/utils/orpc";
 import { DraggableAsset } from "./draggable-asset";
 import { DroppableTrack } from "./droppable-track";
 
 type TimelineProps = {
   assets: Asset[];
   tracks: Track[];
-  projectId: string;
+  clipMutations: ReturnType<typeof createClipMutations>;
   onAssetDelete: (assetId: string) => void;
 };
 
@@ -24,32 +23,12 @@ const DEFAULT_CLIP_DURATION_MS = 5000;
 export function Timeline({
   assets,
   tracks,
-  projectId,
+  clipMutations,
   onAssetDelete,
 }: TimelineProps) {
   const [activeAsset, setActiveAsset] = useState<Asset | null>(null);
-  const queryClient = useQueryClient();
 
   const sortedTracks = [...tracks].sort((a, b) => a.order - b.order);
-
-  const createClipMutation = useMutation({
-    mutationFn: (params: {
-      trackId: string;
-      assetId: string;
-      startMs: number;
-      durationMs: number;
-    }) => client.clip.create(params),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-    },
-  });
-
-  const deleteClipMutation = useMutation({
-    mutationFn: (clipId: string) => client.clip.delete({ id: clipId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-    },
-  });
 
   function handleDragStart(event: DragStartEvent) {
     const asset = assets.find((a) => a.id === event.active.id);
@@ -67,7 +46,7 @@ export function Timeline({
       const targetTrack = tracks.find((t) => t.id === over.id);
 
       if (droppedAsset && targetTrack) {
-        createClipMutation.mutate({
+        clipMutations.insert({
           trackId: targetTrack.id,
           assetId: droppedAsset.id,
           startMs: 0,
@@ -75,6 +54,10 @@ export function Timeline({
         });
       }
     }
+  }
+
+  function handleClipDelete(clipId: string) {
+    clipMutations.delete(clipId);
   }
 
   return (
@@ -118,7 +101,7 @@ export function Timeline({
               <DroppableTrack
                 assets={assets}
                 key={track.id}
-                onClipDelete={(clipId) => deleteClipMutation.mutate(clipId)}
+                onClipDelete={handleClipDelete}
                 track={track}
               />
             ))}

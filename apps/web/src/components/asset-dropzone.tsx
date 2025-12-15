@@ -1,11 +1,11 @@
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import type { getAssetCollection } from "@/lib/collections/asset";
+import type { createAssetMutations } from "@/lib/collections/project";
 import { client } from "@/utils/orpc";
 
 type AssetDropzoneProps = {
   projectId: string;
-  assetCollection: ReturnType<typeof getAssetCollection>;
+  assetMutations: ReturnType<typeof createAssetMutations>;
 };
 
 function getAssetType(mimeType: string): "video" | "audio" | "image" {
@@ -20,7 +20,7 @@ function getAssetType(mimeType: string): "video" | "audio" | "image" {
 
 export function AssetDropzone({
   projectId,
-  assetCollection,
+  assetMutations,
 }: AssetDropzoneProps) {
   const [uploading, setUploading] = useState<string[]>([]);
 
@@ -35,7 +35,7 @@ export function AssetDropzone({
             key: `${projectId}/${file.name}`,
             contentType: file.type,
           });
-          console.log("uploadUrl ❤️❤️❤️❤️❤️❤️❤️❤️", uploadUrl);
+
           await fetch(uploadUrl, {
             method: "PUT",
             body: file,
@@ -46,13 +46,11 @@ export function AssetDropzone({
 
           const assetType = getAssetType(file.type);
 
-          assetCollection.insert({
-            id: tempId,
+          await assetMutations.insert({
             projectId,
             name: file.name,
             url: publicUrl,
             type: assetType,
-            createdAt: new Date(),
           });
         } catch (error) {
           console.error("Upload failed:", error);
@@ -61,7 +59,7 @@ export function AssetDropzone({
         }
       }
     },
-    [projectId, assetCollection]
+    [projectId, assetMutations]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
